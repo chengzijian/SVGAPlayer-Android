@@ -7,7 +7,6 @@ import android.util.Log
 import com.opensource.svgaplayer.proto.MovieEntity
 import org.json.JSONObject
 import java.io.*
-import java.lang.ref.WeakReference
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
@@ -22,8 +21,7 @@ import java.util.zip.ZipInputStream
 
 private var fileLock: Int = 0
 
-class SVGAParser(context: Context?) {
-    private var mContextRef = WeakReference<Context?>(context)
+class SVGAParser(private var mContext: Context?) {
 
     interface ParseCompletion {
 
@@ -97,15 +95,15 @@ class SVGAParser(context: Context?) {
     }
 
     fun init(context: Context) {
-        mContextRef = WeakReference<Context?>(context)
+        mContext = context
     }
 
     fun decodeFromAssets(name: String, callback: ParseCompletion?) {
-        if (mContextRef.get() == null) {
+        if (mContext == null) {
             Log.e("SVGAParser", "在配置 SVGAParser context 前, 无法解析 SVGA 文件。")
         }
         try {
-            mContextRef.get()?.assets?.open(name)?.let {
+            mContext?.assets?.open(name)?.let {
                 this.decodeFromInputStream(it, buildCacheKey("file:///assets/$name"), callback, true)
             }
         }
@@ -186,20 +184,20 @@ class SVGAParser(context: Context?) {
     }
 
     private fun invokeCompleteCallback(videoItem: SVGAVideoEntity, callback: ParseCompletion?) {
-        if (mContextRef.get() == null) {
+        if (mContext == null) {
             Log.e("SVGAParser", "在配置 SVGAParser context 前, 无法解析 SVGA 文件。")
         }
-        Handler(mContextRef.get()?.mainLooper).post {
+        Handler(mContext?.mainLooper).post {
             callback?.onComplete(videoItem)
         }
     }
 
     private fun invokeErrorCallback(e: java.lang.Exception, callback: ParseCompletion?) {
         e.printStackTrace()
-        if (mContextRef.get() == null) {
+        if (mContext == null) {
             Log.e("SVGAParser", "在配置 SVGAParser context 前, 无法解析 SVGA 文件。")
         }
-        Handler(mContextRef.get()?.mainLooper).post {
+        Handler(mContext?.mainLooper).post {
             callback?.onError()
         }
     }
@@ -209,11 +207,11 @@ class SVGAParser(context: Context?) {
     }
 
     private fun decodeFromCacheKey(cacheKey: String, callback: ParseCompletion?) {
-        if (mContextRef.get() == null) {
+        if (mContext == null) {
             Log.e("SVGAParser", "在配置 SVGAParser context 前, 无法解析 SVGA 文件。")
         }
         try {
-            val cacheDir = File(mContextRef.get()?.cacheDir?.absolutePath + "/" + cacheKey + "/")
+            val cacheDir = File(mContext?.cacheDir?.absolutePath + "/" + cacheKey + "/")
             File(cacheDir, "movie.binary").takeIf { it.isFile }?.let { binaryFile ->
                 try {
                     FileInputStream(binaryFile).use {
@@ -268,7 +266,7 @@ class SVGAParser(context: Context?) {
 
     private fun buildCacheKey(url: URL): String = buildCacheKey(url.toString())
 
-    private fun buildCacheDir(cacheKey: String): File = File(mContextRef.get()?.cacheDir?.absolutePath + "/" + cacheKey + "/")
+    private fun buildCacheDir(cacheKey: String): File = File(mContext?.cacheDir?.absolutePath + "/" + cacheKey + "/")
 
     private fun readAsBytes(inputStream: InputStream): ByteArray? {
         ByteArrayOutputStream().use { byteArrayOutputStream ->
